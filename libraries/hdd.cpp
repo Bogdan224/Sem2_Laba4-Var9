@@ -1,6 +1,6 @@
 #include "hdd.h"
-
-
+const std::string invalid_argument = "invalid argument";
+const std::string out_of_range = "out of range";
 
 std::ostream& operator<<(std::ostream& os, const Type& type){
     switch (type)
@@ -21,7 +21,7 @@ std::ostream& operator<<(std::ostream& os, const Type& type){
     }
     return os;
 }
-hdd::hdd(std::string r_firm, std::string r_model, std::string r_ser, int r_tip, int r_volume, int r_countr, int r_volume_countr, Type r_type_table)
+hdd::hdd(std::string r_firm, std::string r_model, std::string r_ser, std::string r_tip, int r_volume, int r_countr, int r_volume_countr, Type r_type_table)
 {
     if(r_firm.empty()){
         r_firm = "Undefined";
@@ -35,10 +35,24 @@ hdd::hdd(std::string r_firm, std::string r_model, std::string r_ser, int r_tip, 
         r_ser = "Undefined";
     }
     ser = r_ser;
+
+     if(r_tip.empty()){
+        r_tip = "Undefined";
+    }
     tip = r_tip;
+
+    if(r_volume < 0 || r_volume > INT32_MAX)
+        throw std::invalid_argument(invalid_argument);
     volume = r_volume;
+
+    if(r_countr < 0 || r_countr > INT32_MAX)
+        throw std::invalid_argument(invalid_argument);
     countr = r_countr;
+
+    if(r_volume_countr < 0 || r_volume_countr > INT32_MAX)
+        throw std::invalid_argument(invalid_argument);
     volumer = r_volume_countr;
+
     type_table = r_type_table;
     section_vector = {};
 }
@@ -66,45 +80,59 @@ int hdd::getVolumeCountr() {
 Type hdd::getTypeTable() {
     return type_table;
 }
-bool hdd::SetTable(int count, int volumep) {
-    count = countr;
-    volumep = volumer;
-    if (count == 1 && volumep == 0){
-        return false;
-    if (count == 0 && volumep == 1)
-        return false;
-        }
-    return true;
+
+int hdd::getFreespace() {
+    return (volume * pow(2, 10)) - volumer;
 }
 
-int hdd::getFreespace(int volumep) {
-    return volume - volumep;
+void hdd::createTypeTable(int volume) {
+    if(volumer + volume <= this->volume)
+    {
+        countr += 1;
+        volumer += volume;
+        return;
+    }
+    throw std::invalid_argument(invalid_argument);
+    
 }
-void hdd::setCreatable(Type tabler) {
-    type_table = tabler;
+bool hdd::hasTable() {
+    return type_table == Type::None ? false : true; 
 }
-bool hdd::tablerr() {
-    if (type_table == Type::None)
-       return false;
-    else
-        return true;
-}
+
 void hdd::print() {
-    std::cout << "Название фирмы:" << firm << std::endl;
+    std::cout << "-------------------------------------------\n";
+    std::cout << "Название фирмы: " << firm << std::endl;
     std::cout << "Название модели: "<< model << std::endl;
-    std::cout << "Серия модели:" << ser << std::endl;
-    std::cout << "Тип накопителя" << tip << std::endl;
-    std::cout << "Объем" << volume << std::endl;
-    std::cout << "Количество разделов" << countr << std::endl;
-    std::cout << "Объем разделов" << volumer << std::endl;
-    std::cout << "Тип таблицы разделов" << type_table << std::endl;
+    std::cout << "Серия модели: " << ser << std::endl;
+    std::cout << "Тип накопителя: " << tip << std::endl;
+    std::cout << "Объем: " << volume << std::endl;
+    std::cout << "Количество разделов: " << countr << std::endl;
+    std::cout << "Объем разделов: " << volumer << std::endl;
+    std::cout << "Тип таблицы разделов: " << type_table << std::endl;
+    std::cout << "-------------------------------------------\n";
 }
 void hdd::addSection(section sec){
+    if(section_vector.empty()){
+        section_vector.push_back(sec);
+        return;
+    }
     if(section_vector.back().getFinalByte() < sec.getInitialByte())
         section_vector.push_back(sec);
+    else
+        throw std::invalid_argument("wrong initial byte value");
 }
 void hdd::deleteSectionByIndex(int index){
     if(index < 0 || index > section_vector.size())
-        return;
+        throw std::out_of_range(out_of_range);
     section_vector.erase(section_vector.begin() + index);
+}
+void hdd::printSections(){
+    int i = 1;
+    for(auto item : section_vector){
+        std::cout << "-------------------------------------------\n";
+        std::cout << "Section " << i << std::endl;
+        item.print();
+        std::cout << "-------------------------------------------\n";
+        i++;
+    }
 }
